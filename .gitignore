@@ -2,6 +2,9 @@ data/
 .data/
 .log/
 
+Makefile
+pyenv/
+
 .pytest_cache/
 woqlClientP.sublime-project
 woqlClientP.sublime-workspace
