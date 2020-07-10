@@ -7,7 +7,7 @@ from discord.utils import get
 
 # logging config
 logging.basicConfig(
-    filename=".log/reg.log",
+    #filename=".log/reg.log",
     format="%(asctime)s - %(message)s",
     level=logging.INFO,
     datefmt="%d-%b-%y %H:%M:%S",
