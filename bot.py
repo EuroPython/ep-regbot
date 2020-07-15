@@ -57,7 +57,7 @@ def roles_given(name, ticket_no):
         for row in datareader:
             try:  # skip if it's header
                 if int(row[4]) == int(ticket_no):
-                    if row[0] == name:
+                    if row[0].lower() == name.lower():
                         if row[3] == "sprint":
                             return ["sprinter"]
                         if row[2] == "yes":
@@ -82,24 +82,28 @@ async def on_ready():
 @bot.command()
 async def register(ctx, *, info):
     if not only_respond_reg or ctx.channel.id == reg_channel_id:
-        info = info.split(",")
-        roles = roles_given(info[0], info[1])
-        if roles is None:
-            logging.info(
-                f"FAIL: Cannot find request form user {ctx.author} with name={info[0]}, ticket_no={info[1]}"
-            )
+        name, ticket_number = info.split(",")
+        mem_nick = list(map(lambda mem: mem.nick, ctx.guild.members))
+        if name in mem_nick:
             await ctx.send(
-                f"{ctx.author.mention} Sorry cannot find the ticket #{info[1]} with name: {info[0]}.\nPlease check and make sure you put down your full name same as the one you used in registering your ticket then try again.\nIf you want a team member to help you, please reply to this message with '@registration'"
+                f"{ctx.author.mention} Sorry, your name has already been registered. The reason could be:\n1) your ticket has not be assgined to you property or;\n2) although it seems quite rare, someone has the same name as you.\n\nYou may ask the person who bought you the ticket to check if they have assgin the ticket to you with your full name. In anycase, if you need a team member to help, contact '@registration'"
             )
+            roles = []
+            log_msg = f"FAIL: Request form user {ctx.author} with name={name}, ticket_no={ticket_number} has duplicated name"
         else:
-            log_msg = f"SUCCESS: Register user {ctx.author} name={info[0]}, ticket_no={info[1]} with roles={roles}"
-            logging.info(log_msg)
-            if log_channel_id is not None:
-                await bot.get_channel(log_channel_id).send(log_msg)
+            roles = roles_given(name, ticket_number)
+
+        if roles is None:
+            log_msg = f"FAIL: Cannot find request form user {ctx.author} with name={name}, ticket_no={ticket_number}"
+            await ctx.send(
+                f"{ctx.author.mention} Sorry, cannot find the ticket #{ticket_number} with name: {name}.\n\nPlease check and make sure you put down your full name same as the one you used in registering your ticket then try again.\n\nIf you want a team member to help you, please reply to this message with '@registration'"
+            )
+        elif len(roles) > 0:
+            log_msg = f"SUCCESS: Register user {ctx.author} name={name}, ticket_no={ticket_number} with roles={roles}"
 
             await ctx.message.add_reaction("🎟️")
             await ctx.message.add_reaction("🤖")
-            await ctx.author.edit(nick=info[0])
+            await ctx.author.edit(nick=name)
             attendee_role = get(ctx.author.guild.roles, name="attendee")
             await ctx.author.add_roles(attendee_role)
 
@@ -108,6 +112,11 @@ async def register(ctx, *, info):
                 await ctx.author.add_roles(role_id)
 
             await ctx.author.send(welcome_msg(ctx.author.mention, roles))
+
+        if log_msg is not None:
+            logging.info(log_msg)
+            if log_channel_id is not None:
+                await bot.get_channel(log_channel_id).send(log_msg)
 
 
 @bot.command()
