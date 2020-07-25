@@ -34,7 +34,7 @@ event_name = "EuroPython"
 instruction = f"Welcome to {event_name}! Please use `!register <Full Name>, <Ticket Number>` to register.\nE.g. `!register James Brown, 99999`"
 
 last_help_msg = None
-help_msg_every =20 #how many messages between auto help messages
+help_msg_every =10 #how many messages between auto help messages
 
 def welcome_msg(mention, roles):
     if len(roles) == 2:
@@ -70,10 +70,11 @@ def roles_given(name, ticket_no):
                     if row[0].lower() == name.lower():
                         if row[3] == "sprint":
                             return ["sprinter"]
-                        if row[2] == "yes":
-                            return ["speaker", "attendee"]
                         else:
-                            return ["attendee"]
+                            if row[2] == "yes":
+                                return ["speaker", "attendee"]
+                            else:
+                                return ["attendee"]
             except:
                 continue
 
@@ -142,20 +143,22 @@ async def register(ctx, *, info):
         elif len(roles) > 0:  # if match found
             log_msg = f"SUCCESS: Register user {ctx.author} name={name}, ticket_no={ticket_number} with roles={roles}"
 
-            await ctx.message.delete()
-            update_msg = await ctx.send(f"{name} registered")
-            await update_msg.add_reaction("🎟️")
-            await update_msg.add_reaction("🤖")
-
-            await ctx.author.edit(nick=name)
-            attendee_role = get(ctx.author.guild.roles, name="attendee")
-            await ctx.author.add_roles(attendee_role)
-
             for role in roles:
                 role_id = get(ctx.author.guild.roles, name=role)
                 await ctx.author.add_roles(role_id)
 
             await ctx.author.send(welcome_msg(ctx.author.mention, roles))
+
+            if len(name) > 32:
+                reg_role = get(ctx.author.guild.roles, name='registration')
+                await ctx.send(f"Sorry {ctx.author.mention}'s name {name} is too long for Discord to handle. {reg_role.mention} could you contact them and handle it?")
+            else:
+                await ctx.author.edit(nick=name)
+
+            await ctx.message.delete()
+            update_msg = await ctx.send(f"{name} registered")
+            await update_msg.add_reaction("🎟️")
+            await update_msg.add_reaction("🤖")
 
         if log_msg is not None:
             logging.info(log_msg)
